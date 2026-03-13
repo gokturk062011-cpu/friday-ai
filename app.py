@@ -121,11 +121,16 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
                         search_results = list(ddgs.news(prompt, max_results=3))
 
                     if search_results:
-                        res = search_results[0]
-                        # Bilgi kalitesini artırmak için en uzun açıklamalı olanı seçmeye çalış
-                        res = max(search_results, key=lambda x: len(x.get('body', '')))
+                        # Bilgi kalitesini artırmak için içeriği en dolu olanı seç
+                        # DuckDuckGo 'text' için 'body', 'news' için 'snippet' veya 'excerpt' kullanır
+                        def get_content(res):
+                            return res.get('body') or res.get('excerpt') or res.get('snippet') or ""
                         
-                        r = f"Efendim, ulaştığım en güncel veriler şöyledir:\n\n**{res['title']}**\n\n{res['body']}\n\n🔗 [Kaynağa Git]({res['href']})"
+                        res = max(search_results, key=lambda x: len(get_content(x)))
+                        content = get_content(res)
+                        link = res.get('href') or res.get('url')
+                        
+                        r = f"Efendim, ulaştığım en güncel veriler şöyledir:\n\n**{res['title']}**\n\n{content}\n\n🔗 [Kaynağa Git]({link})"
                     else:
                         r = f"Efendim, '{prompt}' konusuyla ilgili küresel veritabanlarında şu an net bir eşleşme bulamadım. Aramayı farklı terimlerle derinleştirebilirim."
             except Exception as e:
