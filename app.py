@@ -8,6 +8,7 @@ from sklearn.datasets import load_iris, load_diabetes
 from PIL import Image, ImageOps, ImageFilter
 import time
 from utils import get_ai_greeting, calculate_text_complexity
+from duckduckgo_search import DDGS
 
 # Sayfa Yapılandırması
 st.set_page_config(
@@ -107,7 +108,21 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
         p_lower = prompt.lower()
         
         # Akıllı Protokol Yönetimi
-        if any(x in p_lower for x in ["analiz", "protokol", "veri"]):
+        if any(x in p_lower for x in ["ara", "bul", "nedir", "kimdir", "haber"]):
+            r = f"'{prompt}' için küresel ağ taranıyor efendim..."
+            message_placeholder.markdown(r + "▌")
+            try:
+                with DDGS() as ddgs:
+                    search_results = list(ddgs.text(prompt, max_results=3))
+                    if search_results:
+                        r = "İnternet taraması tamamlandı. İşte bulduğum veriler:\n\n"
+                        for i, res in enumerate(search_results):
+                            r += f"{i+1}. **{res['title']}**: {res['body'][:200]}... [Detay]({res['href']})\n\n"
+                    else:
+                        r = "Efendim, internette bu konuyla ilgili spesifik bir veri bulamadım."
+            except Exception as e:
+                r = "Sistem hatası: İnternet protokollerine şu an erişilemiyor. Lütfen daha sonra tekrar deneyin."
+        elif any(x in p_lower for x in ["analiz", "protokol", "veri"]):
             r = "Veri Analizi Protokolü (MARKI V) devreye alınıyor. Örnek veri setleri yükleniyor..."
             data_tool_type = "iris_analysis"
         elif any(x in p_lower for x in ["görsel", "resim", "fotoğraf"]):
