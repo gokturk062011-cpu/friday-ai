@@ -113,13 +113,12 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
             message_placeholder.markdown(r + "▌")
             try:
                 with DDGS() as ddgs:
-                    search_results = list(ddgs.text(prompt, max_results=3))
+                    search_results = list(ddgs.text(prompt, max_results=1))
                     if search_results:
-                        r = "İnternet taraması tamamlandı. İşte bulduğum veriler:\n\n"
-                        for i, res in enumerate(search_results):
-                            r += f"{i+1}. **{res['title']}**: {res['body'][:200]}... [Detay]({res['href']})\n\n"
+                        res = search_results[0]
+                        r = f"Efendim, en güncel verilere göre ulaştığım sonuç şudur:\n\n**{res['title']}**\n\n{res['body']}\n\n🔗 [Kaynağa Git]({res['href']})"
                     else:
-                        r = "Efendim, internette bu konuyla ilgili spesifik bir veri bulamadım."
+                        r = "Efendim, internette bu konuyla ilgili spesifik ve güncel bir veri bulamadım."
             except Exception as e:
                 r = "Sistem hatası: İnternet protokollerine şu an erişilemiyor. Lütfen daha sonra tekrar deneyin."
         elif any(x in p_lower for x in ["analiz", "protokol", "veri"]):
