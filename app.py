@@ -113,18 +113,21 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
             message_placeholder.markdown(r + "▌")
             try:
                 with DDGS() as ddgs:
-                    # Daha geniş bir arama için timeout ve hata toleransı ekliyoruz
-                    search_results = list(ddgs.text(prompt, max_results=5)) # 5 sonuç çekip en iyisini seçelim
+                    # 'text' yerine bazen daha hızlı sonuç veren 'news' veya genel aramayı hibrit kullanalım
+                    search_results = list(ddgs.text(prompt, max_results=5))
+                    
+                    if not search_results:
+                        # Eğer normal arama sonuç vermezse 'news' kategorisini dene
+                        search_results = list(ddgs.news(prompt, max_results=3))
+
                     if search_results:
-                        # Wikipedia veya haber siteleri gibi kaliteli sonuçları önceliklendir
                         res = search_results[0]
-                        for s in search_results:
-                            if any(x in s['href'] for x in ['wikipedia', 'haber', 'mgm.gov.tr', 'accuweather']):
-                                res = s
-                                break
+                        # Bilgi kalitesini artırmak için en uzun açıklamalı olanı seçmeye çalış
+                        res = max(search_results, key=lambda x: len(x.get('body', '')))
+                        
                         r = f"Efendim, ulaştığım en güncel veriler şöyledir:\n\n**{res['title']}**\n\n{res['body']}\n\n🔗 [Kaynağa Git]({res['href']})"
                     else:
-                        r = "Efendim, ana protokoller veri bulamadı. Alternatif ağlar üzerinden sorgulama yapmamı ister misiniz?"
+                        r = f"Efendim, '{prompt}' konusuyla ilgili küresel veritabanlarında şu an net bir eşleşme bulamadım. Aramayı farklı terimlerle derinleştirebilirim."
             except Exception as e:
                 # Hata durumunda sessizce alternatif bir cevap simülasyonu yapalım (Demo amaçlı)
                 if "hava" in p_lower:
