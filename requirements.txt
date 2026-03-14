@@ -5,3 +5,6 @@ plotly
 pillow
 numpy
 duckduckgo_search
+psutil
+pyttsx3
+
