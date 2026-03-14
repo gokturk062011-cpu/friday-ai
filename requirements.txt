@@ -7,4 +7,4 @@ numpy
 duckduckgo_search
 psutil
 pyttsx3
-
+wikipedia
