@@ -11,6 +11,7 @@ import datetime
 import psutil
 import pyttsx3
 import threading
+import wikipedia
 from utils import get_ai_greeting, calculate_text_complexity
 from duckduckgo_search import DDGS
 
@@ -27,7 +28,6 @@ def speak(text):
             pass 
     threading.Thread(target=run_speech).start()
 
-# Sayfa Yapılandırması
 st.set_page_config(
     page_title="A.S.E.N.A. | Digital Assistant",
     page_icon="💠",
@@ -35,42 +35,27 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for Premium Look
 st.markdown("""
     <style>
-    .main {
-        background-color: #0e1117;
-    }
+    .main { background-color: #0e1117; }
     .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #00d2ff;
-        color: #0e1117;
-        font-weight: bold;
-        transition: 0.3s;
+        width: 100%; border-radius: 5px; height: 3em;
+        background-color: #00d2ff; color: #0e1117;
+        font-weight: bold; transition: 0.3s;
     }
     .stButton>button:hover {
-        background-color: #3182ce;
-        color: white;
+        background-color: #3182ce; color: white;
         box-shadow: 0 0 15px #00d2ff;
     }
-    h1, h2, h3 {
-        color: #00d2ff;
-        font-family: 'Orbitron', sans-serif;
-    }
-    .reportview-container .main .block-container{
-        padding-top: 2rem;
-    }
+    h1, h2, h3 { color: #00d2ff; font-family: 'Orbitron', sans-serif; }
+    .reportview-container .main .block-container{ padding-top: 2rem; }
     </style>
     """, unsafe_allow_html=True)
 
-# Sidebar Navigasyon
 st.sidebar.title("💠 A.S.E.N.A. OS")
 st.sidebar.markdown("*Central Intelligence Hub*")
 st.sidebar.info("Sistem Durumu: OPTİMİZE EDİLDİ")
 
-# Sohbet Geçmişi Başlatma
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "assistant", "content": "Sistemler hazır. Ben A.S.E.N.A., dijital asistanınız. Bugün hangi protokolü çalıştıralım, Göktürk Bey?"}]
 
@@ -78,17 +63,14 @@ if st.sidebar.button("Terminali Sıfırla"):
     st.session_state.messages = [{"role": "assistant", "content": "Tam sıfırlama yapıldı. Hazırım efendim."}]
     st.rerun()
 
-# --- MERKEZİ TERMİNAL (CHAT) ---
 st.title("💠 A.S.E.N.A. Terminal")
 
 col1, col2, col3 = st.columns(3)
-with col1:
-    st.caption("🌐 Bağlantı: Global Cloud")
-with col2:
+with col1: st.caption("🌐 Bağlantı: Global Cloud")
+with col2: 
     now = datetime.datetime.now()
     st.caption(f"🕒 Sistem Zamanı: {now.strftime('%H:%M:%S')}")
-with col3:
-    st.caption("🛡️ Güvenlik: Aktif")
+with col3: st.caption("🛡️ Güvenlik: Aktif")
 
 st.markdown("---")
 
@@ -125,52 +107,57 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
                 if k in p_lower: return True
             return False
 
-        # --- ARAMA PROTOKOLÜ ---
+        # --- YENİ YÜKSEK BİLİNÇLİ ARAMA PROTOKOLÜ ---
         if check(["ara", "bul", "nedir", "kimdir", "haber", "hava", "sıcaklık"]):
-            search_query = prompt
-            if check(["hava", "durumu", "derece"]):
-                search_query = f"{prompt} güncel hava durumu tahmini mgm"
-                
-            r = f"'{prompt}' için küresel ağ taranıyor efendim..."
-            message_placeholder.markdown(r + "▌")
-            try:
-                with DDGS() as ddgs:
-                    search_results = list(ddgs.text(search_query, max_results=5))
-                    if not search_results:
-                        search_results = list(ddgs.news(prompt, max_results=3))
+            search_query = prompt.lower()
+            clean_query = search_query.replace("kimdir", "").replace("nedir", "").replace("ara", "").replace("bul", "").strip()
 
-                    if search_results:
-                        best_content = ""
-                        source_link = ""
+            r = f"'{clean_query}' için veritabanları taranıyor efendim..."
+            message_placeholder.markdown(r + "▌")
+            
+            is_info_query = check(["kimdir", "nedir"])
+            
+            try:
+                # EĞER ANSİKLOPEDİK BİLGİ İSE (WIKIPEDIA ARAMASI)
+                if is_info_query and clean_query:
+                    wikipedia.set_lang("tr") 
+                    try:
+                        wiki_summary = wikipedia.summary(clean_query, sentences=3)
+                        r = f"Efendim, '{clean_query}' hakkında şu bilgilere ulaştım:\n\n> {wiki_summary}"
+                        speak_text = f"Efendim, {clean_query} hakkında şu bilgileri buldum: {wiki_summary}"
+                        speak(speak_text[:300]) 
+                    except wikipedia.exceptions.DisambiguationError as e:
+                        r = f"'{clean_query}' için birden fazla sonuç var (Örn: {', '.join(e.options[:3])}). Lütfen daha spesifik sorun."
+                        speak("Bu isimde birden fazla kayıt buldum, lütfen detaylandırın.")
+                    except wikipedia.exceptions.PageError:
+                        r = f"Vikipedi'de '{clean_query}' hakkında bir kayıt bulamadım. Genel ağ taramasına geçiyorum..."
+                        is_info_query = False 
                         
-                        for res in search_results:
-                            link = (res.get('href') or res.get('url') or "").lower()
-                            if "wikipedia.org" in link:
-                                best_content = res.get('body') or res.get('excerpt') or res.get('snippet') or ""
-                                source_link = res.get('href') or res.get('url')
-                                break
+                # EĞER HABER VEYA HAVA DURUMU İSE (DUCKDUCKGO ARAMASI)
+                if not is_info_query:
+                    if check(["hava", "durumu", "derece"]):
+                        search_query = f"{prompt} güncel hava durumu tahmini mgm"
                         
-                        if not best_content:
-                            for res in search_results:
-                                content = res.get('body') or res.get('excerpt') or res.get('snippet') or ""
-                                if len(content) > 50:
-                                    best_content = content
-                                    source_link = res.get('href') or res.get('url')
-                                    break
-                                    
-                        if best_content:
-                            best_content = best_content.replace('...', '').strip()
-                            r = f"Efendim, '{prompt}' hakkında şu bilgilere ulaştım:\n\n> {best_content}\n\n🔗 [Kapsamlı Bilgi İçin Tıklayın]({source_link})"
-                            speak_text = f"Efendim, '{prompt}' hakkında şu bilgilere ulaştım. {best_content}"
-                            speak(speak_text[:200]) 
+                    with DDGS() as ddgs:
+                        search_results = list(ddgs.text(search_query, max_results=3))
+                        if not search_results:
+                            search_results = list(ddgs.news(prompt, max_results=3))
+
+                        if search_results:
+                            best_content = search_results[0].get('body') or search_results[0].get('snippet') or ""
+                            source_link = search_results[0].get('href') or search_results[0].get('url')
+                            
+                            if best_content:
+                                best_content = best_content.replace('...', '').strip()
+                                r = f"Ağ üzerinde şu güncel veriye ulaştım:\n\n> {best_content}\n\n🔗 [Kapsamlı Bilgi]({source_link})"
+                                speak(f"Şu bilgileri buldum: {best_content[:200]}")
+                            else:
+                                r = "Küresel ağda net bir bilgi fihristlenmemiş efendim."
                         else:
-                             r = f"Efendim, '{prompt}' konusu hakkında net ve özet bir bilgi bulamadım."
-                             speak(r)
-                    else:
-                        r = f"Efendim, '{prompt}' konusuyla ilgili küresel veritabanlarında şu an net bir eşleşme bulamadım."
-                        speak(r)
+                            r = f"Efendim, '{prompt}' konusuyla ilgili küresel ağda şu an net bir eşleşme bulamadım."
+                            speak("Bu konu hakkında ağda bir eşleşme bulamadım efendim.")
             except Exception as e:
-                r = "Sistem hatası: İnternet protokolü (DNS) yanıt vermiyor. Lütfen tekrar deneyin."
+                r = "Sistem hatası: Arama düğümleri yanıt vermiyor."
                 speak("İnternet bağlantısında bir sorun var efendim.")
 
         # --- DİĞER PROTOKOLLER ---
@@ -234,4 +221,3 @@ if prompt := st.chat_input("Bir komut giriniz (Örn: 'Analiz protokolünü başl
     
 st.sidebar.markdown("---")
 st.sidebar.write("OS Version: 2.0.4 | Powered by A.S.E.N.A.")
-
